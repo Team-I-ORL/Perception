@@ -1,0 +1,3 @@
+[submodule "gqcnn_ros2"]
+	path = gqcnn_ros2
+	url = https://github.com/JinkaiQiu/gqcnn_ros2.git
