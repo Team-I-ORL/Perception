@@ -1,3 +1,6 @@
 [submodule "gqcnn_ros2"]
 	path = gqcnn_ros2
 	url = https://github.com/JinkaiQiu/gqcnn_ros2.git
+[submodule "suctionnet-baseline-ros2"]
+	path = suctionnet-baseline-ros2
+	url = git@github.com:JinkaiQiu/suctionnet-baseline-ros2.git
