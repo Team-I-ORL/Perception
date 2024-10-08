@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
         'yolo_sam2 = seg_mask.yolo_sam2:main',
+        'yolo_sam2_test = seg_mask.test_service:main'
         ],
     },
 )

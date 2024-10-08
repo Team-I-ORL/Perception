@@ -6,9 +6,13 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge
+from torch.cuda.amp import autocast
 
 # Import your YOLOv7 and SAMv2 utilities here
 # Ensure you have your custom methods from your script imported as well
+import sys
+sys.path.append("./src/Perception/grounded_sam/seg_mask/seg_mask/")
+sys.path.append("./src/Perception/grounded_sam/seg_mask/seg_mask/yolov7/")
 from yolov7.models.experimental import attempt_load
 from yolov7.utils.general import non_max_suppression, scale_coords
 from yolov7.utils.datasets import letterbox
@@ -18,20 +22,24 @@ from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 # Service Import
-from perception_interface.srv import Segmask
+from perception_interfaces.srv import Segmask
+
+import os
+
+os.environ["TORCH_CUDNN_SDPA_ENABLED"] = "1"
 
 # Device setup
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 bridge = CvBridge()
 
 # Load YOLOv7 model
-yolo_model = attempt_load('checkpoints/yolo_best.pt', map_location=DEVICE)
+yolo_model = attempt_load('/home/gaurav/ros_ws/src/Perception/grounded_sam/seg_mask/checkpoints/yolo_best.pt', map_location=DEVICE)
 yolo_model.eval()
 
 # Load SAMv2 model
-sam2_checkpoint = './checkpoints/sam2_hiera_large.pt'
-sam2_model_cfg = 'sam2_hiera_l.yaml'
-sam2_model = build_sam2(sam2_model_cfg, sam2_checkpoint, device=DEVICE)
+sam2_checkpoint = '/home/gaurav/ros_ws/src/Perception/grounded_sam/seg_mask/checkpoints/sam2_hiera_large.pt'
+sam2_model_cfg = "sam2_hiera_l.yaml"
+sam2_model = build_sam2(sam2_model_cfg, sam2_checkpoint, apply_postprocessing=False, device=DEVICE)
 sam2_predictor = SAM2ImagePredictor(sam2_model)
 
 
@@ -44,7 +52,7 @@ class SegMaskService(Node):
         try:
             # Convert ROS image to OpenCV image
             color_image = bridge.imgmsg_to_cv2(request.color_image, "bgr8")
-            
+
             # Step 1: Get YOLO bounding boxes
             bboxes = self.get_yolo_bboxes(color_image)
 
@@ -92,15 +100,22 @@ class SegMaskService(Node):
     def get_sam_masks(self, image, bboxes):
         masks = []
         sam2_predictor.set_image(image)
-        for bbox in bboxes:
-            x1, y1, x2, y2 = bbox
-            input_box = np.array([[x1, y1, x2, y2]])
-            mask, _, _ = sam2_predictor.predict(point_coords=None,
-                                                point_labels=None,
-                                                box=input_box,
-                                                multimask_output=False)
-            masks.append(mask)
-            break
+        with autocast():
+            for bbox in bboxes:
+                x1, y1, x2, y2 = bbox
+                input_box = np.array([[x1, y1, x2, y2]])
+                mask, _, _ = sam2_predictor.predict(point_coords=None,
+                                                    point_labels=None,
+                                                    box=input_box,
+                                                    multimask_output=False)
+                # masks.append(mask)
+                if mask is not None and len(mask.shape) > 0:  # Ensure mask is not empty
+                    masks.append(mask)
+                    break
+
+                else:
+                    self.get_logger().warn(f"No mask generated for bbox: {bbox}")
+
         return masks
 
     def draw_masks(self, image, masks):
