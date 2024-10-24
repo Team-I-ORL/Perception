@@ -32,10 +32,12 @@ def build_sam2(
             "++model.sam_mask_decoder_extra_args.dynamic_multimask_stability_thresh=0.98",
         ]
 
+    print("Something is happening here")
+
     # Clear previous Hydra instance if it exists
     if GlobalHydra().is_initialized():
         GlobalHydra().clear()
-
+    print("Cleared hydra")
 
     # Read config and init model
     with initialize("../../sam2_configs/"):

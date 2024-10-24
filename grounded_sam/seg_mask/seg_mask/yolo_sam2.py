@@ -24,6 +24,7 @@ from sam2.sam2_image_predictor import SAM2ImagePredictor
 # Service Import
 from perception_interfaces.srv import Segmask
 
+print(type(Segmask))
 import os
 
 os.environ["TORCH_CUDNN_SDPA_ENABLED"] = "1"
@@ -33,13 +34,15 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 bridge = CvBridge()
 
 # Load YOLOv7 model
-yolo_model = attempt_load('/home/gaurav/ros_ws/src/Perception/grounded_sam/seg_mask/checkpoints/yolo_best.pt', map_location=DEVICE)
+yolo_model = attempt_load('/home/siddharth/fall_ws/src/Perception/grounded_sam/seg_mask/checkpoints/yolo_best.pt', map_location=DEVICE)
 yolo_model.eval()
 
 # Load SAMv2 model
-sam2_checkpoint = '/home/gaurav/ros_ws/src/Perception/grounded_sam/seg_mask/checkpoints/sam2_hiera_large.pt'
+sam2_checkpoint = '/home/siddharth/fall_ws/src/Perception/grounded_sam/seg_mask/checkpoints/sam2_hiera_large.pt'
 sam2_model_cfg = "sam2_hiera_l.yaml"
+print("Building sam2")
 sam2_model = build_sam2(sam2_model_cfg, sam2_checkpoint, apply_postprocessing=False, device=DEVICE)
+print("Built samv2")
 sam2_predictor = SAM2ImagePredictor(sam2_model)
 
 
@@ -51,6 +54,7 @@ class SegMaskService(Node):
     def seg_mask_service(self, request, response):
         try:
             # Convert ROS image to OpenCV image
+            print(request.color_image)
             color_image = bridge.imgmsg_to_cv2(request.color_image, "bgr8")
 
             # Step 1: Get YOLO bounding boxes
