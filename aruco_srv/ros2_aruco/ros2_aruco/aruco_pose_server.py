@@ -43,11 +43,12 @@ class ArucoPoseService(Node):
         id = request.id        
         self.get_logger().info(f'Incoming request\nID: {id}')
         start = time.time()
+        msg = request.image
         # state = True
         while self.current_pose is None:
-            state, msg = wait_for_message(Image, self, "/head_camera/rgb/image_rect_color")
+            state, msg = wait_for_message(Image, self, "/head_camera/rgb/image_raw")
             if msg is None or msg.data is None:
-                self.get_logger().warn("NoneType Image Received")
+                self.get_logger().info("NoneType Image Received")
                 continue 
 
             self.get_logger().info("Image Recieved\nFinding Aruco...")
@@ -66,15 +67,16 @@ class ArucoPoseService(Node):
 
                 response.pose = fail_pose
                 self.current_pose = None
+                print(f"Error is - {e}")
                 return response
                 continue
             
-            self.get_logger().info("Aruco Found")
 
             # Loop over the pose array and get the pose of ID needed
             # Check if aruco is detect and the required ID is present or not
             # print("maserker iddddddddddd ", self.current_pose.marker_ids)
             if self.current_pose is not None and id in self.current_pose.marker_ids:
+                self.get_logger().info("Aruco Found")
                 # Get the index of the required ID
                 id_idx = self.current_pose.marker_ids.index(id)
                 req_pose = self.current_pose.poses[id_idx]
@@ -87,22 +89,23 @@ class ArucoPoseService(Node):
                 transformed_pose = do_transform_pose(req_pose, transform)
 
                 # If the offset is needed based on ID
-                if id == 1:
-                    transformed_pose.position.y += 0.05
-                    transformed_pose.position.x -= 0.05
+                # if id == 1:
+                #     transformed_pose.position.y += 0.05
+                #     transformed_pose.position.x -= 0.05
 
-                # if id == 2:
-                #     transformed_pose.position.y -= 0.00
+                # # if id == 2:
+                # #     transformed_pose.position.y -= 0.00
 
-                if id == 3:
-                    transformed_pose.position.x -= 0.02
-                    transformed_pose.position.y -= 0.05
+                # if id == 3:
+                #     transformed_pose.position.x -= 0.02
+                #     transformed_pose.position.y -= 0.05
 
-                transformed_pose.position.x -= 0.28
-                transformed_pose.position.z -= 0.15
+                # transformed_pose.position.x -= 0.28
+                # transformed_pose.position.z -= 0.15
 
                 response.pose = transformed_pose
                 self.current_pose = None
+                print("Returning")
                 return response
             
             else:

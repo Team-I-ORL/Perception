@@ -54,7 +54,6 @@ class SegMaskService(Node):
     def seg_mask_service(self, request, response):
         try:
             # Convert ROS image to OpenCV image
-            print(request.color_image)
             color_image = bridge.imgmsg_to_cv2(request.color_image, "bgr8")
 
             # Step 1: Get YOLO bounding boxes
@@ -65,6 +64,13 @@ class SegMaskService(Node):
 
             # Step 3: Draw the segmentation masks on the image
             segmented_image = self.draw_masks(color_image, masks)
+
+            print(np.unique(segmented_image))    
+            # Display the segmented image
+            import copy
+            cv2.imshow("Segmented Image", copy.deepcopy(segmented_image)*255)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
             # Convert OpenCV image back to ROS Image
             response.segmask = bridge.cv2_to_imgmsg(segmented_image, "bgr8")
@@ -115,11 +121,19 @@ class SegMaskService(Node):
                 # masks.append(mask)
                 if mask is not None and len(mask.shape) > 0:  # Ensure mask is not empty
                     masks.append(mask)
-                    break
 
                 else:
                     self.get_logger().warn(f"No mask generated for bbox: {bbox}")
 
+        # Calculate the average area of the masks
+        areas = [np.sum(mask) for mask in masks]
+        avg_area = np.mean(areas)
+
+        # Find the mask with the area closest to the average
+        closest_mask = min(masks, key=lambda mask: abs(np.sum(mask) - avg_area))
+
+        # Return only the closest mask
+        masks = [closest_mask]
         return masks
 
     def draw_masks(self, image, masks):

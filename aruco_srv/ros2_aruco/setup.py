@@ -27,7 +27,9 @@ setup(
             'aruco_node = ros2_aruco.aruco_node:main',
             'aruco_generate_marker = ros2_aruco.aruco_generate_marker:main',
             'aruco_pose_server = ros2_aruco.aruco_pose_server:main',
-            'wait_for_msg = ros2_aruco.wait_for_msg:main' 
+            'wait_for_msg = ros2_aruco.wait_for_msg:main',
+            'get_drop_pose = ros2_aruco.get_drop_pose:main',
+            'test_drop_pose = ros2_aruco.test_drop_pose:main'
         ],
     },
 )
