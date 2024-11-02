@@ -24,37 +24,29 @@ class MoveHeadService(Node):
             10
         )
 
-        # Define initial pose for each type of object and TODO visual servoing post that
-        # Box Pose
-        self.box_pose = Float64MultiArray()
-        self.box_pose.data = [-0.9, 0.9]
-
-        # Aruco 1 Pose
-        self.ar1_pose = Float64MultiArray()
-        self.ar1_pose.data = [0.0, 0.2]
-
-        # Aruco 2 Pose
-        self.ar2_pose = Float64MultiArray()
-        self.ar2_pose.data = [0.0, 0.2]
-
+        # Define the sweep range for head pan and head tilt
+        self.head_pan_sweep = [-0.9, 0, 0.9]
+        self.head_tilt_sweep = [0.2, 0.9]
 
     def move_head_server(self, request, response):
         # TODO : Visual Servoing
         print(request.what)
-        head_pose = None
+        self.head_pose = None
 
-        if request.what == 'box':
-            head_pose = self.box_pose
+        self.head_pose = Float64MultiArray()
 
-        elif request.what == 'ar1':
-            head_pose = self.ar1_pose
+        for head_pan in self.head_pan_sweep:
+            for head_tilt in self.head_tilt_sweep:
+                # Move the head
+                self.head_pose.data = [head_pan, head_tilt]
+                self.publisher.publish(self.head_pose)
 
-        elif request.what == 'ar2':
-            head_pose = self.ar2_pose
+                # See if we find the object
 
-        else:
-            response.success = False
-            return response
+                # Stop
+
+        response.success = True
+        return response
         
         print(head_pose)
         self.publisher.publish(head_pose)
