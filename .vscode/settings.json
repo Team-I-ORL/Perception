@@ -1,3 +1,41 @@
 {
-    "cmake.sourceDirectory": "/home/gaurav/Operating_Room_Logestics/Perception/aruco_srv/ros2_aruco_interfaces"
+    "cmake.sourceDirectory": "/home/gaurav/Operating_Room_Logestics/Perception/aruco_srv/ros2_aruco_interfaces",
+    "python.autoComplete.extraPaths": [
+        "/home/gaurav/ros_ws/install/suctionnet_ros2/lib/python3.10/site-packages",
+        "/home/gaurav/ros_ws/install/seg_mask/lib/python3.10/site-packages",
+        "/home/gaurav/ros_ws/install/perception_interfaces/local/lib/python3.10/dist-packages",
+        "/home/gaurav/ros_ws/install/orbiter_bt/local/lib/python3.10/dist-packages",
+        "/home/gaurav/ros_ws/install/ros2_aruco_interfaces/local/lib/python3.10/dist-packages",
+        "/home/gaurav/ros_ws/install/ros2_aruco/lib/python3.10/site-packages",
+        "/home/gaurav/ros_ws/install/py_srvcli/lib/python3.10/site-packages",
+        "/home/gaurav/ros_ws/install/openai_ros2/lib/python3.10/site-packages",
+        "/home/gaurav/ros_ws/install/ims_interfaces/local/lib/python3.10/dist-packages",
+        "/home/gaurav/ros_ws/install/gqcnn/lib/python3.10/site-packages",
+        "/home/gaurav/ws_moveit/install/moveit_task_constructor_msgs/local/lib/python3.10/dist-packages",
+        "/home/gaurav/ws_moveit/install/moveit_py/local/lib/python3.10/dist-packages",
+        "/home/gaurav/ws_moveit/install/moveit_msgs/local/lib/python3.10/dist-packages",
+        "/home/gaurav/ws_moveit/install/moveit_configs_utils/lib/python3.10/site-packages",
+        "/home/gaurav/fetch_ws/install/fetch_moveit2/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/gaurav/ros_ws/install/suctionnet_ros2/lib/python3.10/site-packages",
+        "/home/gaurav/ros_ws/install/seg_mask/lib/python3.10/site-packages",
+        "/home/gaurav/ros_ws/install/perception_interfaces/local/lib/python3.10/dist-packages",
+        "/home/gaurav/ros_ws/install/orbiter_bt/local/lib/python3.10/dist-packages",
+        "/home/gaurav/ros_ws/install/ros2_aruco_interfaces/local/lib/python3.10/dist-packages",
+        "/home/gaurav/ros_ws/install/ros2_aruco/lib/python3.10/site-packages",
+        "/home/gaurav/ros_ws/install/py_srvcli/lib/python3.10/site-packages",
+        "/home/gaurav/ros_ws/install/openai_ros2/lib/python3.10/site-packages",
+        "/home/gaurav/ros_ws/install/ims_interfaces/local/lib/python3.10/dist-packages",
+        "/home/gaurav/ros_ws/install/gqcnn/lib/python3.10/site-packages",
+        "/home/gaurav/ws_moveit/install/moveit_task_constructor_msgs/local/lib/python3.10/dist-packages",
+        "/home/gaurav/ws_moveit/install/moveit_py/local/lib/python3.10/dist-packages",
+        "/home/gaurav/ws_moveit/install/moveit_msgs/local/lib/python3.10/dist-packages",
+        "/home/gaurav/ws_moveit/install/moveit_configs_utils/lib/python3.10/site-packages",
+        "/home/gaurav/fetch_ws/install/fetch_moveit2/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ]
 }
