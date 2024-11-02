@@ -1,3 +1,4 @@
 int8 id
+sensor_msgs/Image image
 ---
 geometry_msgs/Pose pose

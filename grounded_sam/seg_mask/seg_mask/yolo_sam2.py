@@ -24,6 +24,7 @@ from sam2.sam2_image_predictor import SAM2ImagePredictor
 # Service Import
 from perception_interfaces.srv import Segmask
 
+print(type(Segmask))
 import os
 
 os.environ["TORCH_CUDNN_SDPA_ENABLED"] = "1"
@@ -33,13 +34,15 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 bridge = CvBridge()
 
 # Load YOLOv7 model
-yolo_model = attempt_load('/home/gaurav/ros_ws/src/Perception/grounded_sam/seg_mask/checkpoints/yolo_best.pt', map_location=DEVICE)
+yolo_model = attempt_load('/home/siddharth/fall_ws/src/Perception/grounded_sam/seg_mask/checkpoints/yolo_best.pt', map_location=DEVICE)
 yolo_model.eval()
 
 # Load SAMv2 model
-sam2_checkpoint = '/home/gaurav/ros_ws/src/Perception/grounded_sam/seg_mask/checkpoints/sam2_hiera_large.pt'
+sam2_checkpoint = '/home/siddharth/fall_ws/src/Perception/grounded_sam/seg_mask/checkpoints/sam2_hiera_large.pt'
 sam2_model_cfg = "sam2_hiera_l.yaml"
+print("Building sam2")
 sam2_model = build_sam2(sam2_model_cfg, sam2_checkpoint, apply_postprocessing=False, device=DEVICE)
+print("Built samv2")
 sam2_predictor = SAM2ImagePredictor(sam2_model)
 
 
@@ -61,6 +64,13 @@ class SegMaskService(Node):
 
             # Step 3: Draw the segmentation masks on the image
             segmented_image = self.draw_masks(color_image, masks)
+
+            print(np.unique(segmented_image))    
+            # Display the segmented image
+            import copy
+            cv2.imshow("Segmented Image", copy.deepcopy(segmented_image)*255)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
             # Convert OpenCV image back to ROS Image
             response.segmask = bridge.cv2_to_imgmsg(segmented_image, "rgb8")
@@ -111,11 +121,19 @@ class SegMaskService(Node):
                 # masks.append(mask)
                 if mask is not None and len(mask.shape) > 0:  # Ensure mask is not empty
                     masks.append(mask)
-                    break
 
                 else:
                     self.get_logger().warn(f"No mask generated for bbox: {bbox}")
 
+        # Calculate the average area of the masks
+        areas = [np.sum(mask) for mask in masks]
+        avg_area = np.mean(areas)
+
+        # Find the mask with the area closest to the average
+        closest_mask = min(masks, key=lambda mask: abs(np.sum(mask) - avg_area))
+
+        # Return only the closest mask
+        masks = [closest_mask]
         return masks
 
     def draw_masks(self, image, masks):
