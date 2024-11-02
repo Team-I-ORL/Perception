@@ -51,7 +51,7 @@ class SegMaskService(Node):
     def seg_mask_service(self, request, response):
         try:
             # Convert ROS image to OpenCV image
-            color_image = bridge.imgmsg_to_cv2(request.color_image, "bgr8")
+            color_image = bridge.imgmsg_to_cv2(request.color_image, "rgb8")
 
             # Step 1: Get YOLO bounding boxes
             bboxes = self.get_yolo_bboxes(color_image)
@@ -63,7 +63,7 @@ class SegMaskService(Node):
             segmented_image = self.draw_masks(color_image, masks)
 
             # Convert OpenCV image back to ROS Image
-            response.segmask = bridge.cv2_to_imgmsg(segmented_image, "bgr8")
+            response.segmask = bridge.cv2_to_imgmsg(segmented_image, "rgb8")
             return response
 
         except Exception as e:
