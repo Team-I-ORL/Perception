@@ -3,7 +3,7 @@ import time
 import rclpy
 from rclpy.node import Node
 import rclpy.serialization
-from std_msgs.msg import Int8
+from std_msgs.msg import Int8, Float64MultiArray, Int16MultiArray
 from ros2_aruco_interfaces.srv import ArucoPose
 from tf2_ros import Buffer, TransformListener
 from tf2_geometry_msgs import do_transform_pose
@@ -54,7 +54,7 @@ class ArucoPoseService(Node):
             self.get_logger().info("Image Recieved\nFinding Aruco...")
             
             try:
-                _, self.current_pose = self.ar_node.image_callback(msg)
+                _, self.current_pose, self.pixel_pose = self.ar_node.image_callback(msg)
             except Exception as e:
                 self.get_logger().error(f"Error: {e}")
                 # if (time.time()- start) > 5.0:
@@ -66,6 +66,9 @@ class ArucoPoseService(Node):
                 fail_pose.position.z = 0.0
 
                 response.pose = fail_pose
+                pixel_pose = Int16MultiArray()
+                pixel_pose.data = [0, 0]
+                response.pixel_coords = pixel_pose
                 self.current_pose = None
                 print(f"Error is - {e}")
                 return response
@@ -82,10 +85,10 @@ class ArucoPoseService(Node):
                 req_pose = self.current_pose.poses[id_idx]
 
                 # Transform the pose to the desired frame
-                while not self.tf_buffer.can_transform('base_link', self.current_pose.header.frame_id, rclpy.time.Time()):
-                    self.get_logger().info(f'Waiting for transform from {self.current_pose.header.frame_id} to base_link...')
+                while not self.tf_buffer.can_transform('torso_lift_link', self.current_pose.header.frame_id, rclpy.time.Time()):
+                    self.get_logger().info(f'Waiting for transform from {self.current_pose.header.frame_id} to torso_lift_link...')
                     rclpy.spin_once(self, timeout_sec=0.1)
-                transform = self.tf_buffer.lookup_transform('base_link', self.current_pose.header.frame_id, rclpy.time.Time())
+                transform = self.tf_buffer.lookup_transform('torso_lift_link', self.current_pose.header.frame_id, rclpy.time.Time())
                 transformed_pose = do_transform_pose(req_pose, transform)
 
                 # If the offset is needed based on ID
@@ -104,6 +107,9 @@ class ArucoPoseService(Node):
                 # transformed_pose.position.z -= 0.15
 
                 response.pose = transformed_pose
+                pixel_pose = Int16MultiArray()
+                pixel_pose.data = self.pixel_pose[id]
+                response.pixel_coords = pixel_pose
                 self.current_pose = None
                 print("Returning")
                 return response

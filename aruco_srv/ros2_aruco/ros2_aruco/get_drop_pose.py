@@ -63,7 +63,7 @@ class DropPoseService(Node):
             if drop_pose.position.x >= 1.15:
                 drop_pose.position.x = 1.05
             elif drop_pose.position.x < 1.15:
-                drop_pose.position.x -= 0.1 
+                drop_pose.position.x -= 0.2 
             drop_pose.position.z += 0.35
             drop_pose.orientation.x = 0.0
             drop_pose.orientation.y = 0.0

@@ -2,3 +2,4 @@ int8 id
 sensor_msgs/Image image
 ---
 geometry_msgs/Pose pose
+std_msgs/Int16MultiArray pixel_coords

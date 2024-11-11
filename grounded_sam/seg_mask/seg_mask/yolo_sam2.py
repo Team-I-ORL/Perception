@@ -11,8 +11,8 @@ from torch.cuda.amp import autocast
 # Import your YOLOv7 and SAMv2 utilities here
 # Ensure you have your custom methods from your script imported as well
 import sys
-sys.path.append("./src/Perception/grounded_sam/seg_mask/seg_mask/")
-sys.path.append("./src/Perception/grounded_sam/seg_mask/seg_mask/yolov7/")
+sys.path.append("/home/siddharth/fall_ws/src/Perception/grounded_sam/seg_mask/seg_mask/")
+sys.path.append("/home/siddharth/fall_ws/src/Perception/grounded_sam/seg_mask/seg_mask/yolov7/")
 from yolov7.models.experimental import attempt_load
 from yolov7.utils.general import non_max_suppression, scale_coords
 from yolov7.utils.datasets import letterbox
@@ -22,9 +22,12 @@ from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 # Service Import
+# sys.path.append("/home/siddharth/fall_ws/install/perception_interfaces/include/perception_interfaces/")
+# sys.path.append("/home/siddharth/fall_ws/src/Interfaces/")
+# sys.path.append("/home/siddharth/fall_ws/install/perception_interfaces/include/perception_interfaces/perception_interfaces/")
 from perception_interfaces.srv import Segmask
 
-print(type(Segmask))
+# print(type(Segmask))
 import os
 
 os.environ["TORCH_CUDNN_SDPA_ENABLED"] = "1"
@@ -73,11 +76,13 @@ class SegMaskService(Node):
             cv2.destroyAllWindows()
 
             # Convert OpenCV image back to ROS Image
-            response.segmask = bridge.cv2_to_imgmsg(segmented_image, "rgb8")
+            gray_segmented_image = cv2.cvtColor(segmented_image, cv2.COLOR_RGB2GRAY)
+            response.segmask = bridge.cv2_to_imgmsg(gray_segmented_image, "mono8")
             return response
 
         except Exception as e:
             self.get_logger().error(f"Failed to process the request: {e}")
+            response.segmask = bridge.cv2_to_imgmsg(cv2.cvtColor(np.zeros_like(color_image), cv2.COLOR_BGR2GRAY), "mono8")
             return None
 
     def get_yolo_bboxes(self, img, img_size=640):
