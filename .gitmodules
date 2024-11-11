@@ -1,6 +1,3 @@
-[submodule "suctionnet-baseline-ros2"]
-	path = suctionnet-baseline-ros2
-	url = git@github.com:JinkaiQiu/suctionnet-baseline-ros2.git
 [submodule "grounded_sam/seg_mask/seg_mask/yolov7"]
 	path = grounded_sam/seg_mask/seg_mask/yolov7
 	url = git@github.com:WongKinYiu/yolov7.git
