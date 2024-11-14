@@ -11,8 +11,8 @@ from torch.cuda.amp import autocast
 # Import your YOLOv7 and SAMv2 utilities here
 # Ensure you have your custom methods from your script imported as well
 import sys
-sys.path.append("/home/siddharth/fall_ws/src/Perception/grounded_sam/seg_mask/seg_mask/")
-sys.path.append("/home/siddharth/fall_ws/src/Perception/grounded_sam/seg_mask/seg_mask/yolov7/")
+sys.path.append("/workspaces/isaac_ros-dev/src/Perception/grounded_sam/seg_mask/seg_mask/")
+sys.path.append("/workspaces/isaac_ros-dev/src/Perception/grounded_sam/seg_mask/seg_mask/yolov7/")
 from yolov7.models.experimental import attempt_load
 from yolov7.utils.general import non_max_suppression, scale_coords
 from yolov7.utils.datasets import letterbox
@@ -22,9 +22,9 @@ from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 # Service Import
-# sys.path.append("/home/siddharth/fall_ws/install/perception_interfaces/include/perception_interfaces/")
-# sys.path.append("/home/siddharth/fall_ws/src/Interfaces/")
-# sys.path.append("/home/siddharth/fall_ws/install/perception_interfaces/include/perception_interfaces/perception_interfaces/")
+# sys.path.append("/workspaces/isaac_ros-dev/install/perception_interfaces/include/perception_interfaces/")
+# sys.path.append("/workspaces/isaac_ros-dev/src/Interfaces/")
+# sys.path.append("/workspaces/isaac_ros-dev/install/perception_interfaces/include/perception_interfaces/perception_interfaces/")
 from perception_interfaces.srv import Segmask
 
 # print(type(Segmask))
@@ -33,16 +33,16 @@ import os
 os.environ["TORCH_CUDNN_SDPA_ENABLED"] = "1"
 
 # Device setup
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DEVICE = 'cpu'#"cuda" if torch.cuda.is_available() else "cpu"
 bridge = CvBridge()
 
 # Load YOLOv7 model
-yolo_model = attempt_load('/home/siddharth/fall_ws/src/Perception/grounded_sam/seg_mask/checkpoints/yolo_best.pt', map_location=DEVICE)
+yolo_model = attempt_load('/workspaces/isaac_ros-dev/src/Perception/grounded_sam/seg_mask/checkpoints/yolo_best.pt', map_location=DEVICE)
 yolo_model.eval()
 
 # Load SAMv2 model
-sam2_checkpoint = '/home/siddharth/fall_ws/src/Perception/grounded_sam/seg_mask/checkpoints/sam2_hiera_large.pt'
-sam2_model_cfg = "sam2_hiera_l.yaml"
+sam2_checkpoint = '/workspaces/isaac_ros-dev/src/Perception/grounded_sam/seg_mask/checkpoints/sam2_hiera_tiny.pt'
+sam2_model_cfg = "sam2_hiera_t.yaml"
 print("Building sam2")
 sam2_model = build_sam2(sam2_model_cfg, sam2_checkpoint, apply_postprocessing=False, device=DEVICE)
 print("Built samv2")
