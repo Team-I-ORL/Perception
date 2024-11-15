@@ -266,10 +266,11 @@
 
 # Import Libraries
 import time
+import copy
 import rclpy
 import numpy as np
 from rclpy.node import Node
-from std_msgs.msg import Float64MultiArray, Int32
+from std_msgs.msg import Float64MultiArray, Int32, Bool
 from perception_interfaces.srv import FindX
 from orbiter_bt.srv import MoveHead
 from ros2_aruco_interfaces.srv import ArucoPose
@@ -340,9 +341,18 @@ class MoveHeadService(Node):
             callback_group=self.head_callback_group
         )
 
+        self.update_collision = self.create_publisher(
+            Bool,
+            'update_collision_env',
+            10
+        )
+
         # Define the sweep range for head pan and head tilt
         self.head_pan_sweep = [-0.9, 0, 0.9]
-        self.head_tilt_sweep = [0.9]
+        self.head_tilt_sweep = [0.9, 0]
+
+        self.swept_area = False
+        self.found_goal = False
 
         self.lock = threading.Lock()
         self.done = False
@@ -353,6 +363,9 @@ class MoveHeadService(Node):
 
         self.Kp = 0.0025
         self.initial_js = [0, 0]
+
+        self.goal_head_pan = None
+        self.goal_head_tilt = None
 
 
     def joint_state_callback(self, msg):
@@ -381,12 +394,14 @@ class MoveHeadService(Node):
                 if self.robot_status not in [Status.ACTIVE, Status.PREEMPTING]:
                     break
             time.sleep(1)  # Sleep to prevent busy waiting
-            self.get_logger().info("Robot is now idle.")
 
     
     def move_head_server(self, request, response):
         # TODO : Visual Servoing
         print(f"Moving head to find - {request.what}")
+        if "aruco" in str(request.what):
+            self.head_pan_sweep = [0, -0.9, 0.9]
+            self.head_tilt_sweep = [0.9, 0]
         self.head_pose = None
 
         self.head_pose = Float64MultiArray()
@@ -394,22 +409,53 @@ class MoveHeadService(Node):
 
         self.res_x = None
         self.res_y = None
-
-        for head_pan in self.head_pan_sweep:
-            for head_tilt in self.head_tilt_sweep:
+        self.goal_head_pan = None
+        self.goal_head_tilt = None
+        self.found_goal = False
+        
+        if not self.swept_area:
+            update_col_data = Bool()
+            update_col_data.data = False
+            self.update_collision.publish(update_col_data)
+            time.sleep(1)
+        
+        for head_pan_loop in self.head_pan_sweep:        
+            for head_tilt_loop in self.head_tilt_sweep:
+                
                 diff_x = np.inf
                 diff_y = np.inf
                 success = False
 
-                while abs(diff_x) >= 50 or abs(diff_y) >= 50:
+                head_pan = copy.deepcopy(head_pan_loop)
+                head_tilt = copy.deepcopy(head_tilt_loop)
+
+                print(f"Goal state - {self.found_goal}, Sweap State - {self.swept_area}")
+
+                if not self.swept_area and self.found_goal:
+                    # Move the head
+                    print(f"Moving head to pan sweep: {head_pan}, tilt: {head_tilt}, time - {np.max(diff_js)}")
+                    self.head_pose.data = [float(head_pan), float(head_tilt), np.max(diff_js) + 1.0]
+                    self.publisher.publish(self.head_pose)
+                    time.sleep(0.1)
+
+                    # Wait for the head to stop moving
+                    self.wait_for_idle()
+
+                    update_col_data = Bool()
+                    update_col_data.data = True
+                    self.update_collision.publish(update_col_data)
+
+                    time.sleep(0.5)
+                
+                while (abs(diff_x) >= 50 or abs(diff_y) >= 50) and (not self.found_goal):
                     diff_js = [head_pan - self.initial_js[0], head_tilt - self.initial_js[1]]
 
                     # Move the head
                     print(f"Moving head to pan: {head_pan}, tilt: {head_tilt}, time - {np.max(diff_js)}")
-                    self.head_pose.data = [float(head_pan), float(head_tilt), np.max(diff_js) + 3.0]
+                    self.head_pose.data = [float(head_pan), float(head_tilt), np.max(diff_js) + 1.0]
                     self.publisher.publish(self.head_pose)
 
-                    time.sleep(1.0)
+                    time.sleep(0.1)
 
                     # Wait for the head to stop moving
                     self.wait_for_idle()
@@ -442,24 +488,53 @@ class MoveHeadService(Node):
 
                         head_pan = head_pan + self.Kp * diff_x
                         head_tilt = head_tilt - self.Kp * diff_y
+                        self.goal_head_pan = copy.deepcopy(head_pan)
+                        self.goal_head_tilt = copy.deepcopy(head_tilt)
                     
                     else:
                         print("What the fuck is happening")
                         success = False
-                        break
+
+                        if self.swept_area:
+                            break
 
                 if abs(diff_x) <= 50 or abs(diff_y) <= 50:
                     success = True
-                    break
-                   
-            if success:
-                break
+                    self.found_goal = True
+                    if self.swept_area:
+                        break
 
-            if self.res_x is not None or self.res_y is not None:
+            self.head_tilt_sweep = list(reversed(self.head_tilt_sweep))
+            if success and self.swept_area:
+                break
+            
+            if not self.swept_area:
+                continue
+
+            elif self.res_x is not None or self.res_y is not None and self.swept_area:
                 success = True
+                self.found_goal = True
+                self.goal_head_pan = copy.deepcopy()
                 break
 
-        if success:
+
+
+        self.swept_area = True
+        
+        if self.found_goal:
+
+            # Come back to goal 
+
+            print(f"Moving to goal: {self.goal_head_pan}, tilt: {self.goal_head_tilt}")
+            self.head_pose.data = [float(self.goal_head_pan), float(self.goal_head_tilt),  3.0]
+            self.publisher.publish(self.head_pose)
+
+            time.sleep(1.0)
+
+            # Wait for the head to stop moving
+            self.wait_for_idle()
+
+
             response.success = True
             self.num_call = not self.num_call
             self.head_pan_sweep = list(reversed(self.head_pan_sweep))
