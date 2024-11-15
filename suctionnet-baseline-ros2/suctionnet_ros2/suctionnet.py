@@ -28,7 +28,15 @@ class SuctionNetNode(Node):
         depth = request.depth_image
         seg_mask = request.segmask
         rgb_img = self.bridge.imgmsg_to_cv2(rgb, "rgb8")
-        seg_mask = self.bridge.imgmsg_to_cv2(seg_mask, "mono8")
+
+        try:
+            self.get_logger().info(seg_mask.encoding)
+            seg_mask = self.bridge.imgmsg_to_cv2(seg_mask, "mono8")
+        except Exception as e:
+            self.get_logger().info(f"Error is - {e}")
+            seg_mask = self.bridge.imgmsg_to_cv2(seg_mask, "passthrough")
+
+            
         depth_img = self.bridge.imgmsg_to_cv2(depth,"passthrough")
         depth_img = depth_img.astype(np.float32)
         depth_img /= 1000
