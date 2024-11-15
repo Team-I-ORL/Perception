@@ -35,6 +35,9 @@ class SegMaskService(Node):
             # Convert ROS image to OpenCV image
             color_image = self.bridge.imgmsg_to_cv2(request.color_image, "rgb8")
             color_image = np.array(color_image)
+
+            color_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2BGR)
+            
             print(np.shape(color_image), type(color_image))
             # Step 1: Get YOLO bounding boxes
             yolo_results = self.yolo_model.predict(color_image)
