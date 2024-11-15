@@ -348,9 +348,11 @@ class MoveHeadService(Node):
         )
 
         # Define the sweep range for head pan and head tilt
-        self.head_pan_sweep = [-0.9, 0, 0.9]
-        self.head_tilt_sweep = [0.9, 0]
-
+        # self.head_pan_sweep = [-0.9, 0, 0.9]
+        # self.head_tilt_sweep = [0.9, 0]
+        self.head_pan_sweep = [-0.9, 0]
+        self.head_tilt_sweep = [0.9, 0]       
+        
         self.swept_area = False
         self.found_goal = False
 
@@ -399,9 +401,6 @@ class MoveHeadService(Node):
     def move_head_server(self, request, response):
         # TODO : Visual Servoing
         print(f"Moving head to find - {request.what}")
-        if "aruco" in str(request.what):
-            self.head_pan_sweep = [0, -0.9, 0.9]
-            self.head_tilt_sweep = [0.9, 0]
         self.head_pose = None
 
         self.head_pose = Float64MultiArray()
@@ -429,14 +428,14 @@ class MoveHeadService(Node):
                 head_pan = copy.deepcopy(head_pan_loop)
                 head_tilt = copy.deepcopy(head_tilt_loop)
 
-                print(f"Goal state - {self.found_goal}, Sweap State - {self.swept_area}")
+                print(f"Goal state - {self.found_goal}, Sweep State - {self.swept_area}")
 
                 if not self.swept_area and self.found_goal:
                     # Move the head
                     print(f"Moving head to pan sweep: {head_pan}, tilt: {head_tilt}, time - {np.max(diff_js)}")
-                    self.head_pose.data = [float(head_pan), float(head_tilt), np.max(diff_js) + 1.0]
+                    self.head_pose.data = [float(head_pan), float(head_tilt), np.max(diff_js) + 3.0]
                     self.publisher.publish(self.head_pose)
-                    time.sleep(0.1)
+                    time.sleep(1)
 
                     # Wait for the head to stop moving
                     self.wait_for_idle()
@@ -445,17 +444,17 @@ class MoveHeadService(Node):
                     update_col_data.data = True
                     self.update_collision.publish(update_col_data)
 
-                    time.sleep(0.5)
+                    time.sleep(1)
                 
                 while (abs(diff_x) >= 50 or abs(diff_y) >= 50) and (not self.found_goal):
                     diff_js = [head_pan - self.initial_js[0], head_tilt - self.initial_js[1]]
 
                     # Move the head
                     print(f"Moving head to pan: {head_pan}, tilt: {head_tilt}, time - {np.max(diff_js)}")
-                    self.head_pose.data = [float(head_pan), float(head_tilt), np.max(diff_js) + 1.0]
+                    self.head_pose.data = [float(head_pan), float(head_tilt), np.max(diff_js) + 3.0]
                     self.publisher.publish(self.head_pose)
 
-                    time.sleep(0.1)
+                    time.sleep(1.0)
 
                     # Wait for the head to stop moving
                     self.wait_for_idle()
@@ -514,7 +513,6 @@ class MoveHeadService(Node):
             elif self.res_x is not None or self.res_y is not None and self.swept_area:
                 success = True
                 self.found_goal = True
-                self.goal_head_pan = copy.deepcopy()
                 break
 
 
