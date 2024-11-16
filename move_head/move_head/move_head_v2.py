@@ -186,10 +186,10 @@ class MoveHeadService(Node):
         return current_head_pose
 
 
-    def search(self):
+    def search(self, head_pan_sweep, head_tilt_sweep):
         # Sweep
-        for head_pan_loop in self.head_pan_sweep:
-            for head_tilt_loop in self.head_tilt_sweep:
+        for head_pan_loop in head_pan_sweep:
+            for head_tilt_loop in head_tilt_sweep:
                 # Get the difference in the joint states
                 diff_js = [head_pan_loop - self.initial_js[0], head_tilt_loop - self.initial_js[1]]
                 self.move_head(head_pan_loop, head_tilt_loop, 3.0) #np.max(diff_js) + 2.0)
@@ -247,7 +247,8 @@ class MoveHeadService(Node):
             self.get_logger().info(f"Request type: {self.request_type}")
 
             try:
-                self.search()
+                # TODO: If the objects are already found, do we search again?
+                self.search(self.head_pan_sweep, self.head_tilt_sweep)
                 self.get_logger().info("Search complete")
                 response.success = True
                 return response
@@ -268,9 +269,24 @@ class MoveHeadService(Node):
                 return response
             
             except Exception as e:
-                self.get_logger().error(f"Error moving to location: {e}")
-                response.success = False
-                return response
+                # Search for the object
+                self.search([0.0, -0.9, 0.9], [0.9, 0])
+                self.get_logger().info("Search complete")
+
+                # See if the object was found
+                if self.goal_poses[what] == []:
+                    self.get_logger().error(f"Error moving to location: {e}")
+                    response.success = False
+                    return response
+                else:
+                    self.go_to_location(what)
+                    self.get_logger().info(f"Moved to {what}")
+                    response.success = True
+                    return response
+
+                # self.get_logger().error(f"Error moving to location: {e}")
+                # response.success = False
+                # return response
 
 
     def get_drop_pose_from_head_server(self, request, response):
