@@ -37,6 +37,8 @@ def estimate_suction(depth_img, obj_mask, camera_info):
     # valid_idx = obj_mask & (point_cloud[..., 2] != 0)
     valid_idx = np.zeros_like(obj_mask, dtype=bool)
     coord1, coord2 = np.nonzero(obj_mask)
+    if len(coord1) == 0 or len(coord2) == 0:
+        RuntimeError('No Valid Mask!!')
     coord1_min, coord1_max = coord1.min(), coord1.max()
     coord2_min, coord2_max = coord2.min(), coord2.max()
     valid_idx[coord1_min:coord1_max+1, coord2_min:coord2_max+1] = 1
