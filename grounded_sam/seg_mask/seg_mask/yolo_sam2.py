@@ -30,18 +30,33 @@ class SegMaskService(Node):
         # Define CV bride
         self.bridge = CvBridge()
 
+        # Mapping Dict
+        # TODO - Fix this mapping
+        self.mapping_dict = {'obj1': 0, 'obj2': 1, 'obj3': 2}
+
     def seg_mask_service(self, request, response):
         try:
             # Convert ROS image to OpenCV image
             color_image = self.bridge.imgmsg_to_cv2(request.color_image, "rgb8")
             color_image = np.array(color_image)
 
+            # Get the object of interest
+            object_of_interest = request.object_of_interest
+
             color_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2BGR)
             
             print(np.shape(color_image), type(color_image))
             # Step 1: Get YOLO bounding boxes
             yolo_results = self.yolo_model.predict(color_image)
-            boxes = yolo_results[0].boxes.xyxy.cpu().numpy()
+            # boxes = yolo_results[0].boxes.xyxy.cpu().numpy()
+
+            # Filter boxes that belong to the object of interest
+            filtered_boxes = []
+            for box in yolo_results[0].boxes:
+                if box.cls == self.mapping_dict[object_of_interest]:
+                    filtered_boxes.append(box.xyxy.cpu().numpy())
+            boxes = np.array(filtered_boxes)
+            print(f"Num Boxes - {len(boxes)}")
 
             # Step 2: Use SAMv2 to get segmentation masks
             sam_results = self.sam_model(color_image, bboxes=boxes)
