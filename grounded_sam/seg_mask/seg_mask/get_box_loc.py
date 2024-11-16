@@ -49,8 +49,10 @@ class FindBoxService(Node):
         response.y = -1
 
         # Convert ROS image to OpenCV image
-        self.image = self.bridge.imgmsg_to_cv2(request.image, "rgb8")
-
+        try:
+            self.image = self.bridge.imgmsg_to_cv2(request.image, "rgb8")
+        except Exception as e:
+            self.get_logger().info(f"Error bridging the image - {e}")
         # Ensure image is not None
         if self.image is None:
             return response

@@ -163,6 +163,7 @@ class ArucoNode(rclpy.node.Node):
             self.get_logger().warn("No camera info has been received!")
             return
 
+        self.get_logger().info("Unpacking Msg")
         cv_image = self.bridge.imgmsg_to_cv2(img_msg, desired_encoding="mono8")
         markers = ArucoMarkers()
         pose_array = PoseArray()
@@ -178,9 +179,10 @@ class ArucoNode(rclpy.node.Node):
         markers.header.stamp = img_msg.header.stamp
         pose_array.header.stamp = img_msg.header.stamp
 
+        self.get_logger().info("Dtecting Markers")
         corners, marker_ids, rejected = self.detector.detectMarkers(cv_image)
 
-        print("Detected Markers: ", marker_ids)
+        self.get_logger().info(f"Detected Markers: {marker_ids}")
 
         if marker_ids is not None:
             if cv2.__version__ > "4.0.0":
@@ -210,8 +212,8 @@ class ArucoNode(rclpy.node.Node):
                 markers.poses.append(pose)
                 markers.marker_ids.append(marker_id[0])
 
-                print("Corners", np.shape(corners))
-                print("Marker ID", marker_id[0])
+                self.get_logger().info(f"Corners - {np.shape(corners)}")
+                self.get_logger().info(f"Marker ID - {marker_id[0]}")
                 corners = np.reshape(corners, (4, 2))
                 centerY = int((corners[0][1] + corners[2][1]) / 2)
                 centerX = int((corners[0][0] + corners[2][0]) / 2)
@@ -222,6 +224,8 @@ class ArucoNode(rclpy.node.Node):
             return pose_array, markers, pixel_pose_array
             self.poses_pub.publish(pose_array)
             self.markers_pub.publish(markers)
+        else:
+            return None, None, None
 
 
 def main():

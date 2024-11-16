@@ -82,17 +82,23 @@ class MoveHeadService(Node):
             callback_group=self.head_callback_group
         )
 
+        self.update_collision = self.create_publisher(
+            Bool,
+            'update_collision_env',
+            10
+        )
+
         # Multithreading executors
         self.lock = threading.Lock()
         self.done = False
 
         # Define the sweep range for head pan and head tilt
-        self.head_pan_sweep = [0.0] #[-0.9, 0, 0.9]
+        self.head_pan_sweep = [-0.9, 0, 0.9]
         self.head_tilt_sweep = [0.9, 0]   
         
         # Create a dict for storing goal poses 
         self.goal_poses = {'aruco1': [],
-                           'aruco2': [],
+                           'aruco3': [],
                            'box': [],
                             'obj1': [[0.0, 0.0]],
                             'obj2': [[0.0, 0.0]],
@@ -101,7 +107,7 @@ class MoveHeadService(Node):
         self.objects_list = ['obj1', 'obj2', 'obj3']
 
         self.goal_3d_poses = {'aruco1': [],
-                              'aruco2': []}
+                              'aruco3': []}
 
         # Execution params
         self.head_joints = ['head_pan_joint', 'head_tilt_joint']
@@ -194,6 +200,10 @@ class MoveHeadService(Node):
                 diff_js = [head_pan_loop - self.initial_js[0], head_tilt_loop - self.initial_js[1]]
                 self.move_head(head_pan_loop, head_tilt_loop, 3.0) #np.max(diff_js) + 2.0)
 
+                update_col_data = Bool()
+                update_col_data.data = True
+                self.update_collision.publish(update_col_data)
+                
                 # Find the object
                 for key, value in self.goal_poses.items():
                     if key not in self.objects_list and len(value) == 0:
@@ -278,13 +288,13 @@ class MoveHeadService(Node):
         self.get_logger().info(f"Received request: What - {request.aruco_id}")
 
         try:
-            print(self.goal_3d_poses[f"aruco{request.aruco_id}"][0][0])
+            print(self.goal_3d_poses[f"aruco{int(request.aruco_id)}"][0])
             response.pose = self.goal_3d_poses[f"aruco{request.aruco_id}"][0][0]
             return response
         
         except Exception as e:
             self.get_logger().error(f"Error getting drop pose: {e}")
-            response.pose = None
+            # response.pose = None
             return response
         
 def main(args=None):

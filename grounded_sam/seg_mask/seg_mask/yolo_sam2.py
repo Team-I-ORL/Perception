@@ -1,5 +1,6 @@
 # Common stuff
 import os
+import gc 
 import cv2
 import torch
 import rclpy
@@ -35,11 +36,14 @@ class SegMaskService(Node):
             # Convert ROS image to OpenCV image
             color_image = self.bridge.imgmsg_to_cv2(request.color_image, "rgb8")
             color_image = np.array(color_image)
+            color_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2BGR)
             print(np.shape(color_image), type(color_image))
             # Step 1: Get YOLO bounding boxes
-            yolo_results = self.yolo_model.predict(color_image)
+            yolo_results = self.yolo_model.predict(color_image, conf=0.2)
             boxes = yolo_results[0].boxes.xyxy.cpu().numpy()
-
+	    #print(yolo_results)
+	    
+	    
             # Step 2: Use SAMv2 to get segmentation masks
             sam_results = self.sam_model(color_image, bboxes=boxes)
 
@@ -82,12 +86,13 @@ class SegMaskService(Node):
             # Convert OpenCV image back to ROS Image
             # gray_segmented_image = cv2.cvtColor(closest_mask, cv2.COLOR_RGB2GRAY)
             response.segmask = self.bridge.cv2_to_imgmsg(closest_mask, "mono8")
+            print(np.unique(response.segmask))
             return response
 
         except Exception as e:
             self.get_logger().error(f"Failed to process the request: {e}")
-            response.segmask = self.bridge.cv2_to_imgmsg(cv2.cvtColor(np.zeros_like(color_image), cv2.COLOR_BGR2GRAY).astype(np.uint8), "mono8")
-            return None
+            response.segmask = Image() #= self.bridge.cv2_to_imgmsg(cv2.cvtColor(np.zeros_like(color_image), cv2.COLOR_BGR2GRAY).astype(np.uint8), "mono8")
+            return response
 
 
 def main(args=None):

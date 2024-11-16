@@ -45,90 +45,77 @@ class ArucoPoseService(Node):
         start = time.time()
         msg = request.image
         # state = True
-        while self.current_pose is None:
-            state, msg = wait_for_message(Image, self, "/head_camera/rgb/image_raw")
-            if msg is None or msg.data is None:
-                self.get_logger().info("NoneType Image Received")
-                continue 
+        # while self.current_pose is None:
+        #     state, msg = wait_for_message(Image, self, "/head_camera/rgb/image_raw")
+        #     if msg is None or msg.data is None:
+        #         self.get_logger().info("NoneType Image Received")
+        #         continue 
 
-            self.get_logger().info("Image Recieved\nFinding Aruco...")
-            
-            try:
-                _, self.current_pose, self.pixel_pose = self.ar_node.image_callback(msg)
-            except Exception as e:
-                self.get_logger().error(f"Error: {e}")
-                # if (time.time()- start) > 5.0:
-                self.get_logger().warn("Aruco not found or ID not present in the image. Returning None...")
+        self.get_logger().info("Image Recieved\nFinding Aruco...")
+        
+        try:
+            _, self.current_pose, self.pixel_pose = self.ar_node.image_callback(msg)
+        except Exception as e:
+            self.get_logger().error(f"Error: {e}")
+            # if (time.time()- start) > 5.0:
+            self.get_logger().warn("Aruco not found or ID not present in the image. Returning None...")
 
-                fail_pose = Pose()
-                fail_pose.position.x = 0.0
-                fail_pose.position.y = 0.0
-                fail_pose.position.z = 0.0
+            fail_pose = Pose()
+            fail_pose.position.x = 0.0
+            fail_pose.position.y = 0.0
+            fail_pose.position.z = 0.0
 
-                response.pose = fail_pose
-                pixel_pose = Int16MultiArray()
-                pixel_pose.data = [0, 0]
-                response.pixel_coords = pixel_pose
-                self.current_pose = None
-                print(f"Error is - {e}")
-                return response
-                continue
-            
+            response.pose = fail_pose
+            pixel_pose = Int16MultiArray()
+            pixel_pose.data = [0, 0]
+            response.pixel_coords = pixel_pose
+            self.current_pose = None
+            return response
+            #continue
+        
 
-            # Loop over the pose array and get the pose of ID needed
-            # Check if aruco is detect and the required ID is present or not
-            # print("maserker iddddddddddd ", self.current_pose.marker_ids)
-            if self.current_pose is not None and id in self.current_pose.marker_ids:
-                self.get_logger().info("Aruco Found")
-                # Get the index of the required ID
-                id_idx = self.current_pose.marker_ids.index(id)
-                req_pose = self.current_pose.poses[id_idx]
+        # Loop over the pose array and get the pose of ID needed
+        # Check if aruco is detect and the required ID is present or not
+        # print("maserker iddddddddddd ", self.current_pose.marker_ids)
+        if self.current_pose is not None and id in self.current_pose.marker_ids:
+            self.get_logger().info("Aruco Found")
+            # Get the index of the required ID
+            id_idx = self.current_pose.marker_ids.index(id)
+            req_pose = self.current_pose.poses[id_idx]
 
-                # Transform the pose to the desired frame
-                while not self.tf_buffer.can_transform('torso_lift_link', self.current_pose.header.frame_id, rclpy.time.Time()):
-                    self.get_logger().info(f'Waiting for transform from {self.current_pose.header.frame_id} to torso_lift_link...')
-                    rclpy.spin_once(self, timeout_sec=0.1)
-                transform = self.tf_buffer.lookup_transform('torso_lift_link', self.current_pose.header.frame_id, rclpy.time.Time())
-                transformed_pose = do_transform_pose(req_pose, transform)
+            # Transform the pose to the desired frame
+            while not self.tf_buffer.can_transform('torso_lift_link', self.current_pose.header.frame_id, rclpy.time.Time()):
+                self.get_logger().info(f'Waiting for transform from {self.current_pose.header.frame_id} to torso_lift_link...')
+                rclpy.spin_once(self, timeout_sec=0.1)
+            transform = self.tf_buffer.lookup_transform('torso_lift_link', self.current_pose.header.frame_id, rclpy.time.Time())
+            transformed_pose = do_transform_pose(req_pose, transform)
 
-                # If the offset is needed based on ID
-                # if id == 1:
-                #     transformed_pose.position.y += 0.05
-                #     transformed_pose.position.x -= 0.05
+            response.pose = transformed_pose
+            pixel_pose = Int16MultiArray()
+            pixel_pose.data = self.pixel_pose[id]
+            response.pixel_coords = pixel_pose
+            self.current_pose = None
+            print("Returning")
+            return response
+        
+        else:
+            # if (time.time()- start) > 5.0:
+            self.get_logger().warn("Aruco not found or ID not present in the image. Returning None...")
 
-                # # if id == 2:
-                # #     transformed_pose.position.y -= 0.00
+            fail_pose = Pose()
+            fail_pose.position.x = 0.0
+            fail_pose.position.y = 0.0
+            fail_pose.position.z = 0.0
 
-                # if id == 3:
-                #     transformed_pose.position.x -= 0.02
-                #     transformed_pose.position.y -= 0.05
-
-                # transformed_pose.position.x -= 0.28
-                # transformed_pose.position.z -= 0.15
-
-                response.pose = transformed_pose
-                pixel_pose = Int16MultiArray()
-                pixel_pose.data = self.pixel_pose[id]
-                response.pixel_coords = pixel_pose
-                self.current_pose = None
-                print("Returning")
-                return response
-            
-            else:
-                if (time.time()- start) > 5.0:
-                    self.get_logger().warn("Aruco not found or ID not present in the image. Returning None...")
-
-                    fail_pose = Pose()
-                    fail_pose.position.x = 0.0
-                    fail_pose.position.y = 0.0
-                    fail_pose.position.z = 0.0
-
-                    response.pose = fail_pose
-                    self.current_pose = None
-                    return response
-                        
-                self.current_pose = None
-                continue
+            response.pose = fail_pose
+            pixel_pose = Int16MultiArray()
+            pixel_pose.data = [-1, -1]
+            response.pixel_coords = pixel_pose
+            self.current_pose = None
+            return response
+                    
+            self.current_pose = None
+                # continue
                 # response.pose = Pose()
                 # self.current_pose = None
                 # return response
