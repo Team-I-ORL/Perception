@@ -235,17 +235,18 @@ class MoveHeadService(Node):
         # Sweep
         for head_pan_loop in head_pan_sweep:
             for head_tilt_loop in head_tilt_sweep:
-                # Get the difference in the joint states
-                diff_js = [head_pan_loop - self.initial_js[0], head_tilt_loop - self.initial_js[1]]
-                self.move_head(head_pan_loop, head_tilt_loop, 3.0) #np.max(diff_js) + 2.0)
-
-                update_col_data = Bool()
-                update_col_data.data = True
-                self.update_collision.publish(update_col_data)
-                
                 # Find the object
                 for key, value in self.goal_poses.items():
                     if key not in self.objects_list and len(value) == 0:
+
+                        # Get the difference in the joint states
+                        diff_js = [head_pan_loop - self.initial_js[0], head_tilt_loop - self.initial_js[1]]
+                        self.move_head(head_pan_loop, head_tilt_loop, 3.0) #np.max(diff_js) + 2.0)
+
+                        update_col_data = Bool()
+                        update_col_data.data = True
+                        self.update_collision.publish(update_col_data)
+                        
                         # Create a request for the FindX service
                         find_x_request = FindX.Request()
 
