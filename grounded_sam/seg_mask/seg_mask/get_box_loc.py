@@ -36,9 +36,9 @@ class FindBoxService(Node):
         self.processor = AutoProcessor.from_pretrained(self.model_id)
         self.model = AutoModelForZeroShotObjectDetection.from_pretrained(self.model_id).to(self.device)
 
-        self.prompt = "brown box."
-        self.BOX_THRESHOLD = 0.6
-        self.TEXT_THRESHOLD = 0.6
+        self.prompt = "cardboard box."
+        self.BOX_THRESHOLD = 0.5
+        self.TEXT_THRESHOLD = 0.5
 
         self.bridge = CvBridge()    
 
