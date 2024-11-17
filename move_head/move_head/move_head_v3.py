@@ -14,6 +14,7 @@ from ros2_aruco.wait_for_msg import wait_for_message
 from sensor_msgs.msg import Image
 import threading
 from enum import Enum
+import functools
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from sensor_msgs.msg import JointState
 
@@ -100,6 +101,7 @@ class MoveHeadService(Node):
 
         # Multithreading executors
         self.lock = threading.Lock()
+        self.mulit_lock = threading.Lock()
         self.done = False
 
         # Define the sweep range for head pan and head tilt
@@ -111,10 +113,7 @@ class MoveHeadService(Node):
                            'aruco2': [],
                            'aruco3': [],
                            'aruco7': [],
-                           'box': [],
-                            'obj1': [[0.0, 0.0]],
-                            'obj2': [[0.0, 0.0]],
-                            'obj3': [[0.0, 0.0]]}
+                           'box': []}
         
         self.objects_list = ['obj1', 'obj2', 'obj3']
 
@@ -141,10 +140,7 @@ class MoveHeadService(Node):
                     'aruco2': [],
                     'aruco3': [],
                     'aruco7': [],
-                    'box': [],
-                    'obj1': [[0.0, 0.0]],
-                    'obj2': [[0.0, 0.0]],
-                    'obj3': [[0.0, 0.0]]}
+                    'box': []}
 
                 self.goal_3d_poses = {'aruco1': [],
                               'aruco2': [],
@@ -220,13 +216,14 @@ class MoveHeadService(Node):
             self.move_head(current_head_pose[0], current_head_pose[1], 1.0)
 
             # Get the pose
-            res = self.aruco_pose_client.call(find_x_request)
+            # res = self.aruco_pose_client.call(find_x_request)
 
-            if res.x == -1 or res.y == -1:
-                return current_head_pose
+            # if res.x == -1 or res.y == -1:
+            #     return current_head_pose
 
-            diff_x = 320 - res.x
-            diff_y = 240 - res.y
+            # diff_x = 320 - res.x
+            # diff_y = 240 - res.y
+            break
 
         return current_head_pose
 
@@ -242,35 +239,83 @@ class MoveHeadService(Node):
         # Sweep
         for head_pan_loop in head_pan_sweep:
             for head_tilt_loop in head_tilt_sweep:
-                # Find the object
-                for key, value in goal_poses_list.items():
                     
-                    # Get the difference in the joint states
-                    diff_js = [head_pan_loop - self.initial_js[0], head_tilt_loop - self.initial_js[1]]
-                    self.move_head(head_pan_loop, head_tilt_loop, 1.0) #np.max(diff_js) + 2.0)
+                # Get the difference in the joint states
+                self.move_head(head_pan_loop, head_tilt_loop, 1.0) #np.max(diff_js) + 2.0)
 
-                    update_col_data = Bool()
-                    update_col_data.data = True
-                    self.update_collision.publish(update_col_data)
-                    
-                    if key not in self.objects_list and len(value) == 0:    
-                        # Create a request for the FindX service
+                # Initialize a dictionary to store results
+                self.results = {}
+                
+                update_col_data = Bool()
+                update_col_data.data = True
+                self.update_collision.publish(update_col_data)
+                
+                # Make parallel service calls for all objects
+                future_calls = {}
+
+                
+                        # self.move_head_to_object(goal_poses_list[key])
+
+                for key in goal_poses_list.keys():
+                    if "aruco" in key:
                         find_x_request = FindX.Request()
+                        find_x_request.object = "aruco"
+                        find_x_request.id = int(key[-1])
+                        future = self.aruco_pose_client.call_async(find_x_request)
+                        future_calls[key] = future
 
-                        if "aruco" in key:
-                            find_x_request.object = "aruco"
-                            find_x_request.id = int(key[-1])
-                        else:
-                            find_x_request.object = key
-                            find_x_request.id = -1
+                    elif 'box' in key:
+                        find_x_request = FindX.Request()
+                        find_x_request.object = key
+                        find_x_request.id = -1
+                    
+                        future = self.aruco_pose_client.call_async(find_x_request)
+                        future_calls[key] = future
+                    else:
+                        self.get_logger().info(f"Invalid object {key}")
+                        continue
+                    
+                    def callback(future, key=key):
+                        with self.mulit_lock:
+                            self.get_logger().info(f"Callback for {key}")
+                            res = future.result()
+                            self.results[key] = res  # Store the result
+                            self.get_logger().info(f"Results - {str(self.results)}")
+                            self.recieved += 1
+                            if res.x != -1 and res.y != -1:
+                                goal_poses_list[key] = [res.x, res.y]
+                            # Move to the object's location
+                            
+                    future.add_done_callback(functools.partial(callback, key=key))
 
-                        # Call the service
-                        res = self.aruco_pose_client.call(find_x_request)
+                self.get_logger().warn(f"Future Callaback for {future_calls}")
+                with self.mulit_lock:
+                    self.recieved = 0
 
-                        # If the object is found, store the pose
-                        if res.x != -1 and res.y != -1:
-                            [goal_pan, goal_tilt] = self.servo([res.x, res.y], [copy.deepcopy(head_pan_loop), copy.deepcopy(head_tilt_loop)] ,find_x_request)
-                            goal_poses_list[key] =  [goal_pan, goal_tilt]
+                # Wait for all futures to complete
+                while (not all(future.done() for future in future_calls.values())) and self.recieved < len(future_calls):
+                    with self.mulit_lock:
+                        time.sleep(0.1)
+                        self.get_logger().info(f"Recieved - {self.recieved}")
+                
+                self.get_logger().warn(f"Done - {str(self.results)}")
+                # ----------------- Servoing -----------------
+                # If the object is found, store the pose
+                # Loop over all the results
+
+                # --------------------------------------------
+                if self.recieved < len(future_calls):
+                    for key, res in self.results.items():
+                        # Check if the result is valid
+                        if res.x != -1 and res.y != -1 and key not in self.objects_list:
+                            # Call the servo function
+                            self.get_logger().info(f"Servoing to {key}")
+                            [goal_pan, goal_tilt] = self.servo(
+                                [res.x, res.y],
+                                [copy.deepcopy(head_pan_loop), copy.deepcopy(head_tilt_loop)],
+                                find_x_request
+                            )   
+                            goal_poses_list[key] = [goal_pan, goal_tilt]
 
                             if "aruco" in key:
                                 self.get_logger().info(f"Finding 3D pose of Aruco {key[-1]}")

@@ -54,9 +54,9 @@ def main(args=None):
 
     time.sleep(1)
 
-    service_tester.request.what = 'aruco7'
-    service_tester.request.type = False
-    service_tester.send_request()
+    # service_tester.request.what = 'aruco7'
+    # service_tester.request.type = False
+    # service_tester.send_request()
 
     # time.sleep(1)
 

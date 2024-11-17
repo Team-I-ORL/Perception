@@ -14,7 +14,8 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from ros2_aruco.aruco_node import ArucoNode
 from ros2_aruco.wait_for_msg import wait_for_message
-
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
 
 class ArucoPoseService(Node):
 
@@ -33,7 +34,8 @@ class ArucoPoseService(Node):
         # self.subscription = self.create_subscription(ArucoMarkers, '/aruco_markers', self.pose_callback,10)
         
         # Define the service
-        self.srv = self.create_service(ArucoPose, 'get_aruco_pose', self.get_aruco_pose)
+        self.callback_group = ReentrantCallbackGroup()
+        self.srv = self.create_service(ArucoPose, 'get_aruco_pose', self.get_aruco_pose, callback_group=self.callback_group)
 
         self.ar_node = ArucoNode()
         rclpy.spin_once(self.ar_node)
@@ -130,10 +132,23 @@ class ArucoPoseService(Node):
 def main(args=None):
     rclpy.init()
 
-    aruco_pose_service = ArucoPoseService()
-    rclpy.spin(aruco_pose_service)
+    # aruco_pose_service = ArucoPoseService()
+    # rclpy.spin(aruco_pose_service)
 
+    aruco_service = ArucoPoseService()
+    executor = MultiThreadedExecutor()
+    executor.add_node(aruco_service)
+
+    try:
+        aruco_service.get_logger().info('Beginning Server, shut down with CTRL-C')
+        executor.spin()
+    except KeyboardInterrupt:
+        aruco_service.get_logger().info('Keyboard interrupt, shutting down.\n')
+
+    executor.shutdown()
+    aruco_service.destroy_node()
     rclpy.shutdown()
+
 
 
 if __name__ == '__main__':

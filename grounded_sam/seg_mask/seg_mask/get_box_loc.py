@@ -1,28 +1,13 @@
 # Importing Libraries
-# import os 
-# import cv2
-# import torch
-# import numpy as np
-# import supervision as sv 
-# import pycocotools.mask as mask_util
-# from torchvision.ops import box_convert
+import time
 import torch
-from PIL import Image
 from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
-
-# Ensuring the paths are fine 
-# import sys
-# sys.path.append('/home/siddharth/fall_ws/src/Perception/grounded_sam/seg_mask/seg_mask/')
-# # sys.path.append('/home/siddharth/fall_ws/src/Perception/grounded_sam/seg_mask/seg_mask/grounding_dino/')
-# import grounding_dino.groundingdino.datasets.transforms as T
-# from grounding_dino.groundingdino.util.inference import load_model, load_image, predict
 
 # ROS2 stuff 
 import rclpy
 from rclpy.node import Node
 from cv_bridge import CvBridge
-from sensor_msgs.msg import Image
-from perception_interfaces.srv import FindObjInFrame, FindX
+from perception_interfaces.srv import FindObjInFrame
 
 class FindBoxService(Node):
     
@@ -35,6 +20,7 @@ class FindBoxService(Node):
 
         self.processor = AutoProcessor.from_pretrained(self.model_id)
         self.model = AutoModelForZeroShotObjectDetection.from_pretrained(self.model_id).to(self.device)
+        self.model.eval()
 
         self.prompt = "cardboard box."
         self.BOX_THRESHOLD = 0.5
@@ -53,6 +39,7 @@ class FindBoxService(Node):
             self.image = self.bridge.imgmsg_to_cv2(request.image, "rgb8")
         except Exception as e:
             self.get_logger().info(f"Error bridging the image - {e}")
+        
         # Ensure image is not None
         if self.image is None:
             return response
@@ -70,8 +57,7 @@ class FindBoxService(Node):
             target_sizes=[self.image.shape[:-1]]
         )
         
-        print(len(results[0]['scores']))
-        print(results)
+        self.get_logger().info(str(results))
         # If no boxes are found, return
         if len(results[0]['scores']) == 0:
             return response
