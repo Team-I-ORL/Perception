@@ -54,13 +54,13 @@ def main(args=None):
 
     time.sleep(1)
 
-    service_tester.request.what = 'aruco1'
-    service_tester.request.type = False
+    # service_tester.request.what = 'aruco1'
+    # service_tester.request.type = False
     service_tester.send_request()
 
-    time.sleep(1)
+    # time.sleep(1)
 
-    service_tester.new_request()
+    # service_tester.new_request()
 
     # service_tester = ServiceTester()
     # service_tester.aruco_client = service_tester.create_client(GetDropPose, '/get_drop_pose_from_head')

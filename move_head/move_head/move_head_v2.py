@@ -37,6 +37,7 @@ class MoveHeadService(Node):
         self.head_status_callback_group = MutuallyExclusiveCallbackGroup()
         self.get_drop_pose_from_head_callback_group = MutuallyExclusiveCallbackGroup()
         self.head_callback_group = MutuallyExclusiveCallbackGroup()
+        self.did_move_callback_group = MutuallyExclusiveCallbackGroup()
 
         # Define the services
         self.service = self.create_service(MoveHead, 
@@ -67,6 +68,12 @@ class MoveHeadService(Node):
             10
         )
 
+        self.update_collision = self.create_publisher(
+            Bool,
+            'update_collision_env',
+            10
+        )
+
         # Create subscribers to get the joint states and head status
         self.joint_state_subscriber = self.create_subscription(
             JointState,
@@ -82,10 +89,13 @@ class MoveHeadService(Node):
             callback_group=self.head_callback_group
         )
 
-        self.update_collision = self.create_publisher(
+
+        self.did_move_sub = self.create_subscription(
             Bool,
-            'update_collision_env',
-            10
+            'moved',
+            self.did_move_callback,
+            10,
+            callback_group=self.did_move_callback_group
         )
 
         # Multithreading executors
@@ -98,7 +108,9 @@ class MoveHeadService(Node):
         
         # Create a dict for storing goal poses 
         self.goal_poses = {'aruco1': [],
+                           'aruco2': [],
                            'aruco3': [],
+                           'aruco7': [],
                            'box': [],
                             'obj1': [[0.0, 0.0]],
                             'obj2': [[0.0, 0.0]],
@@ -107,13 +119,40 @@ class MoveHeadService(Node):
         self.objects_list = ['obj1', 'obj2', 'obj3']
 
         self.goal_3d_poses = {'aruco1': [],
-                              'aruco3': []}
+                              'aruco2': [],
+                              'aruco3': [],
+                              'aruco7': []}
 
         # Execution params
         self.head_joints = ['head_pan_joint', 'head_tilt_joint']
         self.Kp = 0.0025
         self.initial_js = [0, 0]
         self.robot_status = Status.PENDING
+        self.did_move = True
+
+    def did_move_callback(self, msg):
+        with self.lock:
+            self.did_move = msg.data
+
+            # If the robot moved, reset the goal poses
+            if self.did_move:
+                self.get_logger().info("Robot moved")
+                self.goal_poses = {'aruco1': [],
+                    'aruco2': [],
+                    'aruco3': [],
+                    'aruco7': [],
+                    'box': [],
+                    'obj1': [[0.0, 0.0]],
+                    'obj2': [[0.0, 0.0]],
+                    'obj3': [[0.0, 0.0]]}
+
+                self.goal_3d_poses = {'aruco1': [],
+                              'aruco2': [],
+                              'aruco3': [],
+                              'aruco7': []}
+
+                self.update_collision.publish(Bool(data=False))
+
 
     def joint_state_callback(self, msg):
         # Get the initial joint states
@@ -223,7 +262,7 @@ class MoveHeadService(Node):
                         # If the object is found, store the pose
                         if res.x != -1 and res.y != -1:
                             [goal_pan, goal_tilt] = self.servo([res.x, res.y], [copy.deepcopy(head_pan_loop), copy.deepcopy(head_tilt_loop)] ,find_x_request)
-                            self.goal_poses[key] = [goal_pan, goal_tilt]
+                            self.goal_poses[key] =  [goal_pan, goal_tilt]
 
                             if "aruco" in key:
                                 self.get_logger().info(f"Finding 3D pose of Aruco {key[-1]}")
@@ -257,11 +296,16 @@ class MoveHeadService(Node):
             self.get_logger().info(f"Request type: {self.request_type}")
 
             try:
-                # TODO: If the objects are already found, do we search again?
-                self.search(self.head_pan_sweep, self.head_tilt_sweep)
-                self.get_logger().info("Search complete")
+                if self.did_move:
+                    # TODO: If the objects are already found, do we search again?
+                    self.search(self.head_pan_sweep, self.head_tilt_sweep)
+                    self.get_logger().info("Search complete")
+                    self.did_move = False
+                    
+                self.get_logger().info(str(self.goal_poses))
                 response.success = True
                 return response
+
             
             except Exception as e:
                 self.get_logger().error(f"Error searching for object: {e}")

@@ -46,7 +46,8 @@ class SegMaskService(Node):
         #     yolo_results = self.yolo_model.predict(color_image, conf=0.2)
         #     boxes = yolo_results[0].boxes.xyxy.cpu().numpy()
             # Get the object of interest
-            object_of_interest = request.object_of_interest
+            object_of_interest = request.object_of_interest.data
+            print(f"Object of Interests - {object_of_interest}")
 
             # color_image = cv2.cvtColor(color_image, cv2.COLOR_RGB2BGR)
             
@@ -105,7 +106,7 @@ class SegMaskService(Node):
             # Convert OpenCV image back to ROS Image
             # gray_segmented_image = cv2.cvtColor(closest_mask, cv2.COLOR_RGB2GRAY)
             response.segmask = self.bridge.cv2_to_imgmsg(closest_mask, "mono8")
-            print(np.unique(response.segmask))
+            # print(np.unique(response.segmask))
             return response
 
         except Exception as e:

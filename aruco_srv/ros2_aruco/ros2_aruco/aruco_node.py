@@ -212,11 +212,11 @@ class ArucoNode(rclpy.node.Node):
                 markers.poses.append(pose)
                 markers.marker_ids.append(marker_id[0])
 
-                self.get_logger().info(f"Corners - {np.shape(corners)}")
+                self.get_logger().info(f"Corners - {np.shape(corners[i])}")
                 self.get_logger().info(f"Marker ID - {marker_id[0]}")
-                corners = np.reshape(corners, (4, 2))
-                centerY = int((corners[0][1] + corners[2][1]) / 2)
-                centerX = int((corners[0][0] + corners[2][0]) / 2)
+                corner = np.reshape(corners[i], (4, 2))
+                centerY = int((corner[0][1] + corner[2][1]) / 2)
+                centerX = int((corner[0][0] + corner[2][0]) / 2)
                 pixel_pose_array[marker_id[0]] = [centerX, centerY]
 
 
