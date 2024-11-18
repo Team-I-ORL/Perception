@@ -99,10 +99,12 @@ class SegMaskService(Node):
             overlay_image[closest_mask > 0] = [0, 255, 0]  # Overlay mask with green color
             cv2.addWeighted(overlay_image, 0.5, color_image, 0.5, 0, overlay_image)
             cv2.imshow("Segmented Image with Overlay", overlay_image)
-            # cv2.imshow("Segmented Image", copy.deepcopy(closest_mask)*255)
+            cv2.imshow("Segmented Image", copy.deepcopy(closest_mask)*255)
             cv2.waitKey(5000)
             cv2.destroyAllWindows()
-
+            print("*"*40)
+            print("MASK FOUND")
+            print("*"*40)
             # Convert OpenCV image back to ROS Image
             # gray_segmented_image = cv2.cvtColor(closest_mask, cv2.COLOR_RGB2GRAY)
             response.segmask = self.bridge.cv2_to_imgmsg(closest_mask, "mono8")

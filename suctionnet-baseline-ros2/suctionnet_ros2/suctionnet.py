@@ -45,6 +45,7 @@ class SuctionNetNode(Node):
         except Exception as e:
             self.get_logger().error("Error in inferencing: {}".format(e))
             print("Depth Image Shape: ", depth_img.shape, "RGB Image Shape: ", rgb_img.shape, "Seg Mask Shape: ", seg_mask.shape)
+            print("Segmask Avg", np.mean(seg_mask))
             print("Depth Image Avg: ", np.mean(depth_img))
 
             return response

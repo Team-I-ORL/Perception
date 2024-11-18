@@ -103,8 +103,8 @@ class MoveHeadService(Node):
         self.done = False
 
         # Define the sweep range for head pan and head tilt
-        self.head_pan_sweep = [-0.9, 0, 0.9]
-        self.head_tilt_sweep = [0.9, 0]   
+        self.head_pan_sweep = [-0.9, 0]
+        self.head_tilt_sweep = [0.9, 0.4, 0]   
         
         # Create a dict for storing goal poses 
         self.goal_poses = {'aruco1': [],
@@ -242,11 +242,19 @@ class MoveHeadService(Node):
         # Sweep
         for head_pan_loop in head_pan_sweep:
             for head_tilt_loop in head_tilt_sweep:
+
+                if head_tilt_loop == 0.2:
+                    self.move_head(head_pan_loop, head_tilt_loop, 1.0) #np.max(diff_js) + 2.0)
+
+                    update_col_data = Bool()
+                    update_col_data.data = True
+                    self.update_collision.publish(update_col_data)
+                    continue
+
                 # Find the object
                 for key, value in goal_poses_list.items():
                     
                     # Get the difference in the joint states
-                    diff_js = [head_pan_loop - self.initial_js[0], head_tilt_loop - self.initial_js[1]]
                     self.move_head(head_pan_loop, head_tilt_loop, 1.0) #np.max(diff_js) + 2.0)
 
                     update_col_data = Bool()
