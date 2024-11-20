@@ -110,6 +110,8 @@ class MoveHeadService(Node):
         self.goal_poses = {'aruco1': [],
                            'aruco2': [],
                            'aruco3': [],
+                           'aruco4': [],
+                           'aruco5': [],
                            'aruco7': [],
                            'box': [],
                             'obj1': [[0.0, 0.0]],
@@ -121,6 +123,8 @@ class MoveHeadService(Node):
         self.goal_3d_poses = {'aruco1': [],
                               'aruco2': [],
                               'aruco3': [],
+                              'aruco4': [],
+                              'aruco5': [],
                               'aruco7': []}
 
         # Execution params
@@ -140,6 +144,8 @@ class MoveHeadService(Node):
                 self.goal_poses = {'aruco1': [],
                     'aruco2': [],
                     'aruco3': [],
+                    'aruco4': [],
+                    'aruco5': [],
                     'aruco7': [],
                     'box': [],
                     'obj1': [[0.0, 0.0]],
@@ -149,6 +155,8 @@ class MoveHeadService(Node):
                 self.goal_3d_poses = {'aruco1': [],
                               'aruco2': [],
                               'aruco3': [],
+                              'aruco4': [],
+                              'aruco5': [],
                               'aruco7': []}
 
                 self.update_collision.publish(Bool(data=False))
@@ -243,7 +251,7 @@ class MoveHeadService(Node):
         for head_pan_loop in head_pan_sweep:
             for head_tilt_loop in head_tilt_sweep:
 
-                if head_tilt_loop == 0.2:
+                if head_tilt_loop == 0.4:
                     self.move_head(head_pan_loop, head_tilt_loop, 1.0) #np.max(diff_js) + 2.0)
 
                     update_col_data = Bool()
