@@ -25,7 +25,7 @@ setup(
         'console_scripts': [
             'move_head = move_head.move_head:main',
             'move_head_v2 = move_head.move_head_v2:main',
-            'move_head_v3 = move_head.move_head_v3:main',
+            'move_head_v4 = move_head.move_head_v4:main',
             'test_move_head = move_head.test_move_head:main'
         ],
     },

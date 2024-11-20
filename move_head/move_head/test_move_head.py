@@ -11,14 +11,14 @@ class ServiceTester(Node):
         # Create a client for the service
         self.client = self.create_client(MoveHead, '/move_head')
 
-        self.aruco_client = self.create_client(GetDropPose, '/get_drop_pose_from_head')
+        # self.aruco_client = self.create_client(GetDropPose, '/get_drop_pose_from_head')
 
         # Wait for the service to be available
         while not self.client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Waiting for service to become available...')
         
-        while not self.aruco_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for service to become available...')
+        # while not self.aruco_client.wait_for_service(timeout_sec=1.0):
+        #     self.get_logger().info('Waiting for service to become available...')
         
         # Create a request
         self.request = MoveHead.Request()
