@@ -39,7 +39,7 @@ class NormStdInferencer:
 
         return clustered_suction_directions, clustered_suction_translations
 
-    def infer(self, rgb_img : np.ndarray, depth_img : np.ndarray, seg_mask=None, use_cluster=False):
+    def infer(self, rgb_img : np.ndarray, depth_img : np.ndarray, seg_mask=None, use_cluster=False, centerness_weight=0.5):
         assert rgb_img.shape[:2] == depth_img.shape[:2]
         assert rgb_img.shape[:2] == seg_mask.shape[:2]
         assert len(depth_img.shape) == 2
@@ -53,10 +53,29 @@ class NormStdInferencer:
         # print('kernel:', kernel.shape)
         heatmap = np.pad(heatmap, k_size//2)
         heatmap = torch.from_numpy(heatmap).unsqueeze(0).unsqueeze(0)
-        # print('heatmap:', heatmap.shape)
         heatmap = F.conv2d(heatmap, kernel).squeeze().numpy()
 
-        suction_scores, idx0, idx1 = SNU.grid_sample(heatmap, down_rate=10, topk=40)
+        # Create centerness mask
+        centerness_mask = np.zeros_like(seg_mask, dtype=np.float32)
+        for region in np.unique(seg_mask):
+            if region == 0:
+                continue
+            region_mask = (seg_mask == region)
+            region_indices = np.argwhere(region_mask)
+            center = np.mean(region_indices, axis=0).astype(int)
+            distances = np.linalg.norm(region_indices - center, axis=1)
+            max_distance = np.max(distances)
+            centerness = 1 - (distances / max_distance)
+            centerness_mask[region_mask] = centerness
+
+        heatmap_avg = np.mean(heatmap)
+        centerness_avg = np.mean(centerness_mask)
+        centerness_mask = centerness_mask / centerness_avg * centerness_weight
+        heatmap = heatmap / heatmap_avg
+
+        heatmap = np.dot(heatmap, centerness_weight)
+
+        suction_scores, idx0, idx1 = SNU.grid_sample(heatmap, down_rate=10, topk=20)
         
         if seg_mask is not None:
             suctions, idx0, idx1 = SNU.filter_suctions(suction_scores, idx0, idx1, seg_mask)
@@ -74,8 +93,8 @@ class NormStdInferencer:
 
             suction_directions = clu_suction_directions[sampled_index]
             suction_translations = clu_suction_translations[sampled_index]
-            print('Sampled suction_directions:', suction_directions)
-            print('Sampled suction_translations:', suction_translations)
+            # print('Sampled suction_directions:', suction_directions)
+            # print('Sampled suction_translations:', suction_translations)
         
         # average suction direction and translation after filtering outliers
         suction_direction = np.mean(suction_directions, axis=0)
